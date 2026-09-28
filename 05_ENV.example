@@ -1,0 +1,94 @@
+# Gym Management System
+# Environment Variables
+#
+# IMPORTANT:
+# - Never commit the real .env file to Git.
+# - Never expose the service-role key in frontend code.
+# - Never prefix the service-role key with VITE_ or another public/frontend prefix.
+
+# ============================================================
+# SUPABASE
+# ============================================================
+
+# Supabase project URL
+SUPABASE_URL=https://aoikhsiditnurjuwejvh.supabase.co
+
+# Browser-safe Supabase anonymous/publishable key
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvaWtoc2lkaXRudXJqdXdlanZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MDgzNzIsImV4cCI6MjEwNjE4NDM3Mn0.DSsSJWweRky-aZwNOlLm9PoYJFEvi486GrJZOGdwr8Y
+
+# Server-side privileged key
+# KEEP THIS SECRET.
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvaWtoc2lkaXRudXJqdXdlanZoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDYwODM3MiwiZXhwIjoyMTA2MTg0MzcyfQ.FB-NQGDeCTg9wkmfbRd998kpKbxT8rnsa8TUKMddiFc
+
+
+# ============================================================
+# FRONTEND VARIABLES
+# ============================================================
+#
+# If using Vite, these are the only Supabase values that should
+# be exposed to browser code.
+
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+
+
+# ============================================================
+# APPLICATION
+# ============================================================
+
+APP_NAME=Gym Management System
+APP_ENV=development
+
+# Example:
+# Asia/Kolkata
+APP_TIMEZONE=Asia/Kolkata
+
+CURRENCY=INR
+
+
+# ============================================================
+# OPTIONAL: SUPABASE LOCAL DEVELOPMENT
+# ============================================================
+
+# These are useful when connecting local scripts/tools to the
+# local Supabase instance.
+
+# SUPABASE_LOCAL_URL=http://127.0.0.1:54321
+# SUPABASE_LOCAL_ANON_KEY=YOUR_LOCAL_ANON_KEY
+# SUPABASE_LOCAL_SERVICE_ROLE_KEY=YOUR_LOCAL_SERVICE_ROLE_KEY
+
+
+# ============================================================
+# OPTIONAL: EXTERNAL SERVICES
+# ============================================================
+#
+# Add these only when the corresponding features are implemented.
+
+# EMAIL_PROVIDER_API_KEY=
+# SMS_PROVIDER_API_KEY=
+# WHATSAPP_PROVIDER_API_KEY=
+# PAYMENT_PROVIDER_SECRET=
+# STORAGE_BUCKET=member-files
+
+
+# ============================================================
+# SECURITY
+# ============================================================
+
+# NEVER put these in VITE_* variables:
+#
+# SUPABASE_SERVICE_ROLE_KEY
+# PAYMENT_PROVIDER_SECRET
+# EMAIL_PROVIDER_API_KEY
+# SMS_PROVIDER_API_KEY
+# WHATSAPP_PROVIDER_API_KEY
+#
+# Frontend:
+#   VITE_SUPABASE_URL
+#   VITE_SUPABASE_ANON_KEY
+#
+# Server / Edge Functions:
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#
+# The real .env file must be included in .gitignore.
