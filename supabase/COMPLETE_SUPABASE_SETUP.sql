@@ -1,5 +1,5 @@
 -- ==============================================================================
--- APEXFIT LUXURY GYM MANAGEMENT SYSTEM - COMPLETE DATABASE SCHEMA & SEED DATA
+-- APEXFIT LUXURY GYM MANAGEMENT SYSTEM - DATABASE SCHEMA & INITIAL SEED DATA
 -- Run this entire script in your Supabase SQL Editor:
 -- https://supabase.com/dashboard/project/aoikhsiditnurjuwejvh/sql/new
 -- ==============================================================================
@@ -11,7 +11,7 @@ create extension if not exists "uuid-ossp";
 -- 2. CREATE TABLES
 -- ==============================================================================
 
--- PROFILES (Auth users & staff)
+-- PROFILES
 create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
@@ -235,7 +235,7 @@ create table if not exists public.gym_settings (
 );
 
 -- ==============================================================================
--- 3. DISABLE RLS / ENABLE PERMISSIVE ACCESS FOR APP
+-- 3. ENABLE RLS POLICIES FOR APP PERMISSION
 -- ==============================================================================
 alter table public.profiles enable row level security;
 alter table public.trainers enable row level security;
@@ -253,7 +253,7 @@ alter table public.progress_photos enable row level security;
 alter table public.notifications enable row level security;
 alter table public.gym_settings enable row level security;
 
--- Create full read/write policies for public anon & authenticated keys
+-- Drop and recreate permissive policies
 drop policy if exists "Allow all on profiles" on public.profiles;
 create policy "Allow all on profiles" on public.profiles for all using (true) with check (true);
 
@@ -300,24 +300,13 @@ drop policy if exists "Allow all on gym_settings" on public.gym_settings;
 create policy "Allow all on gym_settings" on public.gym_settings for all using (true) with check (true);
 
 -- ==============================================================================
--- 4. SEED INITIAL DATA (Plans, Settings, Exercises, Coaches, Members)
+-- 4. SEED INITIAL DATA
 -- ==============================================================================
 
 -- 4.1 Gym Settings
 insert into public.gym_settings (id, gym_name, phone, email, address, opening_time, closing_time, currency, currency_symbol, timezone, tax_rate)
-values (
-  '11111111-1111-1111-1111-111111111111',
-  'APEXFIT LUXURY PERFORMANCE CLUB',
-  '+91 98765 43210',
-  'concierge@apexfit.club',
-  'Level 4, Grand Boulevard Tower, Central Business District, Mumbai, MH',
-  '05:30 AM',
-  '11:00 PM',
-  'INR',
-  '₹',
-  'Asia/Kolkata',
-  18.00
-) on conflict (id) do nothing;
+values ('11111111-1111-1111-1111-111111111111', 'APEXFIT LUXURY PERFORMANCE CLUB', '+91 98765 43210', 'concierge@apexfit.club', 'Level 4, Grand Boulevard Tower, Central Business District, Mumbai, MH', '05:30 AM', '11:00 PM', 'INR', '₹', 'Asia/Kolkata', 18.00)
+on conflict (id) do nothing;
 
 -- 4.2 Membership Plans
 insert into public.membership_plans (id, name, description, duration_days, price, features, is_popular, is_active)
@@ -349,46 +338,44 @@ on conflict (id) do nothing;
 -- 4.4 Master Trainers
 insert into public.trainers (id, full_name, email, phone, specialization, experience_years, joining_date, salary, bio, is_active)
 values
-  ('44444444-4444-4444-4444-444444444401', 'Vikramaditya Rao', 'vikram@apexfit.club', '+91 98111 22334', 'Powerlifting & Hypertrophy', 8, '2024-01-15', 65000, 'National level powerlifter & certified CSCS strength specialist.', true),
-  ('44444444-4444-4444-4444-444444444402', 'Natasha Alvares', 'natasha@apexfit.club', '+91 98222 33445', 'Athletic Conditioning & Mobility', 6, '2024-03-01', 58000, 'Former state gymnast, expert in kettlebell dynamics & injury rehab.', true),
-  ('44444444-4444-4444-4444-444444444403', 'Kabir Malhotra', 'kabir@apexfit.club', '+91 98333 44556', 'Olympic Weightlifting & HIIT', 5, '2024-06-10', 52000, 'USAW Level 2 sports coach specializing in snatch & clean-and-jerk mechanics.', true)
+  ('44444444-4444-4444-4444-444444444401', 'Vikramaditya Rao', 'vikram@apexfit.club', '+91 98111 22334', 'Powerlifting & Hypertrophy', 8, '2024-01-15'::date, 65000, 'National level powerlifter & certified CSCS strength specialist.', true),
+  ('44444444-4444-4444-4444-444444444402', 'Natasha Alvares', 'natasha@apexfit.club', '+91 98222 33445', 'Athletic Conditioning & Mobility', 6, '2024-03-01'::date, 58000, 'Former state gymnast, expert in kettlebell dynamics & injury rehab.', true),
+  ('44444444-4444-4444-4444-444444444403', 'Kabir Malhotra', 'kabir@apexfit.club', '+91 98333 44556', 'Olympic Weightlifting & HIIT', 5, '2024-06-10'::date, 52000, 'USAW Level 2 sports coach specializing in snatch & clean-and-jerk mechanics.', true)
 on conflict (id) do nothing;
 
 -- 4.5 Demo Members
 insert into public.members (id, member_code, full_name, email, phone, gender, joining_date, assigned_trainer_id, status, notes)
 values
-  ('55555555-5555-5555-5555-555555555501', 'APX-1001', 'Aarav Singhania', 'aarav.singhania@apexfit.club', '+91 99001 11223', 'male', '2026-01-10', '44444444-4444-4444-4444-444444444401', 'active', 'VIP Founding Member. Focus on heavy compound lifting.'),
-  ('55555555-5555-5555-5555-555555555502', 'APX-1002', 'Rhea Chakraborty', 'rhea.c@apexfit.club', '+91 99002 22334', 'female', '2026-02-01', '44444444-4444-4444-4444-444444444402', 'active', 'Goal: Body recomp & functional flexibility.'),
-  ('55555555-5555-5555-5555-555555555503', 'APX-1003', 'Devansh Kapoor', 'devansh.k@apexfit.club', '+91 99003 33445', 'male', '2026-03-05', '44444444-4444-4444-4444-444444444403', 'active', 'Preparing for triathlon endurance training.'),
-  ('55555555-5555-5555-5555-555555555504', 'APX-1004', 'Ananya Sharma', 'ananya.s@apexfit.club', '+91 99004 44556', 'female', '2026-03-12', '44444444-4444-4444-4444-444444444402', 'active', 'Corporate wellness executive pass holder.')
+  ('55555555-5555-5555-5555-555555555501', 'APX-1001', 'Aarav Singhania', 'aarav.singhania@apexfit.club', '+91 99001 11223', 'male', '2026-01-10'::date, '44444444-4444-4444-4444-444444444401', 'active', 'VIP Founding Member. Focus on heavy compound lifting.'),
+  ('55555555-5555-5555-5555-555555555502', 'APX-1002', 'Rhea Chakraborty', 'rhea.c@apexfit.club', '+91 99002 22334', 'female', '2026-02-01'::date, '44444444-4444-4444-4444-444444444402', 'active', 'Goal: Body recomp & functional flexibility.'),
+  ('55555555-5555-5555-5555-555555555503', 'APX-1003', 'Devansh Kapoor', 'devansh.k@apexfit.club', '+91 99003 33445', 'male', '2026-03-05'::date, '44444444-4444-4444-4444-444444444403', 'active', 'Preparing for triathlon endurance training.'),
+  ('55555555-5555-5555-5555-555555555504', 'APX-1004', 'Ananya Sharma', 'ananya.s@apexfit.club', '+91 99004 44556', 'female', '2026-03-12'::date, '44444444-4444-4444-4444-444444444402', 'active', 'Corporate wellness executive pass holder.')
 on conflict (id) do nothing;
 
 -- 4.6 Active Subscriptions
 insert into public.memberships (id, member_id, plan_id, start_date, end_date, price, discount, final_amount, status, auto_renew)
 values
-  ('66666666-6666-6666-6666-666666666601', '55555555-5555-5555-5555-555555555501', '22222222-2222-2222-2222-222222222204', '2026-01-10', '2027-01-10', 32000, 0, 32000, 'active', true),
-  ('66666666-6666-6666-6666-666666666602', '55555555-5555-5555-5555-555555555502', '22222222-2222-2222-2222-222222222202', '2026-02-01', '2026-05-02', 9500, 0, 9500, 'active', true),
-  ('66666666-6666-6666-6666-666666666603', '55555555-5555-5555-5555-555555555503', '22222222-2222-2222-2222-222222222203', '2026-03-05', '2026-09-01', 17500, 500, 17000, 'active', true),
-  ('66666666-6666-6666-6666-666666666604', '55555555-5555-5555-5555-555555555504', '22222222-2222-2222-2222-222222222201', '2026-03-12', '2026-04-11', 3500, 0, 3500, 'active', true)
+  ('66666666-6666-6666-6666-666666666601', '55555555-5555-5555-5555-555555555501', '22222222-2222-2222-2222-222222222204', '2026-01-10'::date, '2027-01-10'::date, 32000, 0, 32000, 'active', true),
+  ('66666666-6666-6666-6666-666666666602', '55555555-5555-5555-5555-555555555502', '22222222-2222-2222-2222-222222222202', '2026-02-01'::date, '2026-05-02'::date, 9500, 0, 9500, 'active', true),
+  ('66666666-6666-6666-6666-666666666603', '55555555-5555-5555-5555-555555555503', '22222222-2222-2222-2222-222222222203', '2026-03-05'::date, '2026-09-01'::date, 17500, 500, 17000, 'active', true),
+  ('66666666-6666-6666-6666-666666666604', '55555555-5555-5555-5555-555555555504', '22222222-2222-2222-2222-222222222201', '2026-03-12'::date, '2026-04-11'::date, 3500, 0, 3500, 'active', true)
 on conflict (id) do nothing;
 
 -- 4.7 Payments
 insert into public.payments (id, member_id, membership_id, amount, payment_method, transaction_reference, payment_date, status, notes, created_by)
 values
-  ('77777777-7777-7777-7777-777777777701', '55555555-5555-5555-5555-555555555501', '66666666-6666-6666-6666-666666666601', 32000, 'upi', 'APX/UPI/884920', '2026-01-10', 'paid', 'Annual Black Tier VIP Membership Fee', 'Alexander Sterling'),
-  ('77777777-7777-7777-7777-777777777702', '55555555-5555-5555-5555-555555555502', '66666666-6666-6666-6666-666666666602', 9500, 'card', 'APX/POS/492019', '2026-02-01', 'paid', 'Quarterly Pro Membership Fee', 'Alexander Sterling'),
-  ('77777777-7777-7777-7777-777777777703', '55555555-5555-5555-5555-555555555503', '66666666-6666-6666-6666-666666666603', 17000, 'upi', 'APX/UPI/772910', '2026-03-05', 'paid', 'Half-Yearly Elite Membership Fee', 'Alexander Sterling'),
-  ('77777777-7777-7777-7777-777777777704', '55555555-5555-5555-5555-555555555504', '66666666-6666-6666-6666-666666666604', 3500, 'upi', 'APX/UPI/332190', '2026-03-12', 'paid', 'Monthly Standard Fee', 'Front Desk')
+  ('77777777-7777-7777-7777-777777777701', '55555555-5555-5555-5555-555555555501', '66666666-6666-6666-6666-666666666601', 32000, 'upi', 'APX/UPI/884920', '2026-01-10'::date, 'paid', 'Annual Black Tier VIP Membership Fee', 'Alexander Sterling'),
+  ('77777777-7777-7777-7777-777777777702', '55555555-5555-5555-5555-555555555502', '66666666-6666-6666-6666-666666666602', 9500, 'card', 'APX/POS/492019', '2026-02-01'::date, 'paid', 'Quarterly Pro Membership Fee', 'Alexander Sterling'),
+  ('77777777-7777-7777-7777-777777777703', '55555555-5555-5555-5555-555555555503', '66666666-6666-6666-6666-666666666603', 17000, 'upi', 'APX/UPI/772910', '2026-03-05'::date, 'paid', 'Half-Yearly Elite Membership Fee', 'Alexander Sterling'),
+  ('77777777-7777-7777-7777-777777777704', '55555555-5555-5555-5555-555555555504', '66666666-6666-6666-6666-666666666604', 3500, 'upi', 'APX/UPI/332190', '2026-03-12'::date, 'paid', 'Monthly Standard Fee', 'Front Desk')
 on conflict (id) do nothing;
 
--- 4.8 Today's Check-ins
+-- 4.8 Attendance
 insert into public.attendance (id, member_id, attendance_date, check_in, check_out, marked_by, notes)
 values
   ('88888888-8888-8888-8888-888888888801', '55555555-5555-5555-5555-555555555501', current_date, '06:15:00', '07:45:00', 'Front Desk', 'Morning Hypertrophy Session'),
   ('88888888-8888-8888-8888-888888888802', '55555555-5555-5555-5555-555555555502', current_date, '07:30:00', null, 'Front Desk', 'Active on gym floor')
 on conflict (member_id, attendance_date) do nothing;
 
--- ==============================================================================
--- 5. NOTIFY SUPABASE OF SCHEMA RELOAD
--- ==============================================================================
+-- 5. Notify Schema Cache
 notify pgrst, 'reload schema';
