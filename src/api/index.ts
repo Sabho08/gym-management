@@ -56,9 +56,182 @@ const DEFAULT_SETTINGS: GymSettings = {
 };
 
 export const api = {
-  // --- AUTH / ROLE ---
-  getCurrentUser: async (): Promise<{ success: boolean; user: Profile }> => {
-    const role = getActiveRole();
+  // --- AUTH / SUPABASE AUTH METHODS ---
+  signIn: async (credentials: { email: string; password: string }): Promise<{ success: boolean; user: Profile; session: any }> => {
+    const { email, password } = credentials;
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data.user) {
+      throw new Error('No user data returned from authentication');
+    }
+
+    const profile = await api.getOrCreateProfile(data.user);
+    return {
+      success: true,
+      user: profile,
+      session: data.session,
+    };
+  },
+
+  signUp: async (params: {
+    email: string;
+    password: string;
+    full_name: string;
+    role?: UserRole;
+    phone?: string;
+  }): Promise<{ success: boolean; user: Profile; session: any; requiresVerification: boolean }> => {
+    const { email, password, full_name, role = 'admin', phone = '' } = params;
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        data: {
+          full_name,
+          role,
+          phone,
+        },
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data.user) {
+      throw new Error('Registration failed to create user');
+    }
+
+    const profile = await api.getOrCreateProfile(data.user, { full_name, role, phone });
+    return {
+      success: true,
+      user: profile,
+      session: data.session,
+      requiresVerification: !data.session,
+    };
+  },
+
+  signOut: async (): Promise<void> => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  },
+
+  resetPassword: async (email: string): Promise<void> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/`,
+    });
+    if (error) throw error;
+  },
+
+  getOrCreateProfile: async (
+    authUser: any,
+    metadataOverride?: { full_name?: string; role?: UserRole; phone?: string }
+  ): Promise<Profile> => {
+    if (!authUser || !authUser.id) {
+      throw new Error('Invalid auth user');
+    }
+
+    // 1. Check if profile exists by ID
+    const { data: profileById } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle();
+
+    if (profileById) {
+      return profileById as Profile;
+    }
+
+    // 2. Check if profile exists by email
+    if (authUser.email) {
+      const { data: profileByEmail } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', authUser.email)
+        .maybeSingle();
+
+      if (profileByEmail) {
+        return profileByEmail as Profile;
+      }
+    }
+
+    // 3. Fallback: Create and upsert fresh profile in public.profiles
+    const meta = authUser.user_metadata || {};
+    const newProfile: Profile = {
+      id: authUser.id,
+      full_name:
+        metadataOverride?.full_name ||
+        meta.full_name ||
+        (authUser.email ? authUser.email.split('@')[0].replace(/[._-]/g, ' ') : 'Club Member'),
+      email: authUser.email || '',
+      phone: metadataOverride?.phone || meta.phone || '+91 98765 43210',
+      role: (metadataOverride?.role || meta.role || 'admin') as UserRole,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      const { data: created } = await supabase
+        .from('profiles')
+        .upsert(newProfile, { onConflict: 'id' })
+        .select('*')
+        .maybeSingle();
+
+      if (created) return created as Profile;
+    } catch (e) {
+      console.warn('Profile upsert fallback used', e);
+    }
+
+    return newProfile;
+  },
+
+  getCurrentUser: async (): Promise<{ success: boolean; user: Profile | null }> => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const authUser = sessionData?.session?.user;
+
+    if (!authUser) {
+      return { success: false, user: null };
+    }
+
+    try {
+      const profile = await api.getOrCreateProfile(authUser);
+      return {
+        success: true,
+        user: profile,
+      };
+    } catch (err) {
+      console.error('Failed to get user profile:', err);
+      return { success: false, user: null };
+    }
+  },
+
+  switchRole: async (role: UserRole): Promise<{ success: boolean; user: Profile }> => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const authUser = sessionData?.session?.user;
+
+    if (authUser) {
+      const { data: updated } = await supabase
+        .from('profiles')
+        .update({ role, updated_at: new Date().toISOString() })
+        .eq('id', authUser.id)
+        .select('*')
+        .maybeSingle();
+
+      if (updated) {
+        return { success: true, user: updated as Profile };
+      }
+    }
+
+    // Client fallback if offline or mock testing
+    setActiveRole(role);
     const roleNames: Record<UserRole, string> = {
       admin: 'Alexander Sterling',
       receptionist: 'Front Desk Concierge',
@@ -66,24 +239,18 @@ export const api = {
       member: 'Aarav Singhania',
     };
 
-    return {
-      success: true,
-      user: {
-        id: `user-${role}`,
-        full_name: roleNames[role] || 'Alexander Sterling',
-        email: `${role}@apexfit.club`,
-        phone: '+91 98765 43210',
-        role,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
+    const fallbackUser: Profile = {
+      id: authUser?.id || `user-${role}`,
+      full_name: roleNames[role] || 'Alexander Sterling',
+      email: authUser?.email || `${role}@apexfit.club`,
+      phone: '+91 98765 43210',
+      role,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
-  },
 
-  switchRole: async (role: UserRole): Promise<{ success: boolean; user: Profile }> => {
-    setActiveRole(role);
-    return api.getCurrentUser();
+    return { success: true, user: fallbackUser };
   },
 
   // --- DASHBOARD (Calculated live from Supabase) ---

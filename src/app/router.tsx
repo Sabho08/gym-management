@@ -11,7 +11,13 @@ import { WorkoutsPage } from '../pages/WorkoutsPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { SettingsPage } from '../pages/SettingsPage';
 
+import { LoginPage } from '../pages/LoginPage';
+
 export const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
   {
     path: '/',
     element: <AppLayout />,
