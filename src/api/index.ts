@@ -923,13 +923,22 @@ export const api = {
   markCheckIn: async (payload: { member_id_or_code: string; notes?: string }) => {
     const q = payload.member_id_or_code.trim();
 
-    // Find member by ID, code, or phone
-    const { data: member } = await supabase
-      .from('members')
-      .select('*')
-      .or(`id.eq.${q},member_code.ilike.${q},phone.ilike.%${q}%,full_name.ilike.%${q}%`)
-      .limit(1)
-      .single();
+    // Find member by ID (if UUID), code, phone, or name
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
+
+    let queryBuilder = supabase.from('members').select('*');
+    if (isUuid) {
+      queryBuilder = queryBuilder.or(`id.eq.${q},member_code.ilike.%${q}%,phone.ilike.%${q}%,full_name.ilike.%${q}%`);
+    } else {
+      queryBuilder = queryBuilder.or(`member_code.ilike.%${q}%,phone.ilike.%${q}%,full_name.ilike.%${q}%`);
+    }
+
+    const { data: member, error: memberErr } = await queryBuilder.limit(1).maybeSingle();
+
+    if (memberErr) {
+      console.error('Error fetching member for check-in:', memberErr);
+      throw new Error(memberErr.message);
+    }
 
     if (!member) {
       throw new Error(`Member '${payload.member_id_or_code}' not found in database.`);
@@ -941,7 +950,7 @@ export const api = {
       .select('*')
       .eq('member_id', member.id)
       .eq('attendance_date', todayStr)
-      .single();
+      .maybeSingle();
 
     if (existing && !existing.check_out) {
       throw new Error(`${member.full_name} is already checked in today at ${existing.check_in}.`);
